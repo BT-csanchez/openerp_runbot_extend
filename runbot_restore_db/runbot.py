@@ -359,13 +359,19 @@ class runbot_repo(osv.Model):
         """
         build_obj = pool.get('runbot.build')
         jobs = build_obj.list_jobs()
-        job_obj = pool.get('runbot.job')
         for job_name in jobs:
-            job_id = job_obj.search(cr, 1, [('name', '=', job_name)])
+            query = "select id from runbot_job where name = '{0}'".format(job_name)
+            cr.execute(query)
+            job_id = [x[0] for x in cr.fetchall()]
             if not job_id:
-                job_obj.create(cr, 1, {'name': job_name})
-        job_to_rm_ids = job_obj.search(cr, 1, [('name', 'not in', jobs)])
-        job_obj.unlink(cr, 1, job_to_rm_ids)
+                query = """insert into runbot_job (name) values ('{0}')""".format(job_name)
+                cr.execute(query)
+        query = "select id,name from runbot_job "
+        cr.execute(query)
+        job_to_rm_ids = [x[0] for x in cr.fetchall() if x[1] not in jobs]
+        for job_id in job_to_rm_ids:
+                query = "delete from runbot_job where id = {0}".format(job_id)
+                cr.execute(query)
         return super(runbot_repo, self).__init__(pool, cr)
 
     _columns = {
