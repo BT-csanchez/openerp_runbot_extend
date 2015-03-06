@@ -38,7 +38,20 @@ loglevels = (('none', 'None'),
              ('warning', 'Warning'),
              ('error', 'Error'))
 
+LOG_FILENAME = '/tmp/{0}'.format(__name__)
+
+# Set up a specific logger with our desired output level
 _logger = logging.getLogger(__name__)
+_logger.setLevel(logging.DEBUG)
+
+# Add the log message handler to the logger
+handler = logging.handlers.RotatingFileHandler(
+              LOG_FILENAME, maxBytes=20000, backupCount=10)
+
+_logger.addHandler(handler)
+
+
+
 
 _re_error = r'^(?:\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3} \d+ (?:ERROR|CRITICAL) )|(?:Traceback \(most recent call last\):)$'
 _re_warning = r'^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3} \d+ WARNING '
@@ -155,6 +168,17 @@ class runbot_build(osv.osv):
                         os.killpg(proc.pid, signal.SIGKILL)
                     except OSError:
                         pass
+    def createdb_from_other(self, cr, uid, dbname, template, codification):
+        self.pg_dropdb(cr, uid, dbname)
+        _logger.debug("createdb from other %s", dbname)
+        if not codification:
+            codification = 'UTF-8'
+        run(['createdb',
+             '--encoding={0}'.format(codification),
+             '--lc-collate=C',
+             '--template={0}'.format(template), dbname])
+        _logger.debug("End createdb from other")
+
 
     def job_25_restore(self, cr, uid, build, lock_path, log_path):
         if not build.repo_id.db_name:
@@ -165,14 +189,8 @@ class runbot_build(osv.osv):
             cmd = "pg_dump %s | psql %s-all" % (build.repo_id.db_name, build.dest)
             return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
         else:
-            cmd = ['createdb']
-            cmd.append(db_name)
-            if build.repo_id.db_codification:
-                cmd.append("-E")
-                cmd.append("{0}".format(build.repo_id.db_codification))
-            cmd.append('-T')
-            cmd.append(build.repo_id.db_name)
-            return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
+            self.createdb_from_other(cr, uid, db_name, build.repo_id.db_name, build.repo_id.db_codification)
+            return self.spawn([], lock_path, log_path, cpu_limit=None, shell=True)
 
     def job_26_upgrade(self, cr, uid, build, lock_path, log_path):
         if not build.repo_id.db_name:
