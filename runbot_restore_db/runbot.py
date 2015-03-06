@@ -176,7 +176,12 @@ class runbot_build(osv.osv):
         if not build.repo_id.db_name:
             return 0
         cmd, mods = build.cmd()
-        cmd += ['-d', '%s-all' % build.dest, '-u', 'all', '--stop-after-init', '--log-level=debug', '--test-enable']
+        command = []
+        if build.repo_id.update_modules:
+            command = ['-u', build.repo_id.update_modules]
+        cmd += ['-d', '%s-all' % build.dest]
+        cmd += command
+        cmd += ['--stop-after-init', '--log-level=debug', '--test-enable']
         return self.spawn(cmd, lock_path, log_path, cpu_limit=None)
 
     def job_30_run(self, cr, uid, build, lock_path, log_path):
@@ -387,6 +392,7 @@ class runbot_repo(osv.Model):
         'db_name': fields.char("Database name to replicate"),
         'db_name_template': fields.boolean('Db Name Template'),
         'db_codification': fields.char('Codification'),
+        'update_modules': fields.char('Update these modules'),
         'nobuild': fields.boolean('Do not build'),
         'sequence': fields.integer('Sequence of display', select=True),
         'error': fields.selection(loglevels, 'Error messages'),
@@ -405,7 +411,8 @@ class runbot_repo(osv.Model):
         'warning': 'warning',
         'failed': 'none',
         'db_name_template': True,
-        'db_codification': 'UTF-8'
+        'db_codification': 'UTF-8',
+        'update_modules': ''
     }
 
     _order = 'sequence'

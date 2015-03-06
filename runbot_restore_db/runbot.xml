@@ -9,7 +9,7 @@
                     <field name="db_name" />
                     <field name="db_name_template" />
                     <field name="db_codification" />
-
+					<field name="update_modules" />
                     <field name="nobuild" />
                     <field name="sequence" />
 
