@@ -167,7 +167,7 @@ class runbot_build(osv.osv):
         else:
             cmd = "createdb {0} -T {1}".format(build.repo_id.db_name,
                                                       db_name)
-            cmd.split()
+            cmd = cmd.split()
             if build.repo_id.db_codification:
                 cmd.append("-E {0}".format(build.repo_id.db_codification))
             return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
