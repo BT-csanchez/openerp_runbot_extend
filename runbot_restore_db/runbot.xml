@@ -7,6 +7,9 @@
             <field name="arch" type="xml">
                 <field name="modules" position="after">
                     <field name="db_name" />
+                    <field name="db_name_template" />
+                    <field name="db_codification" />
+
                     <field name="nobuild" />
                     <field name="sequence" />
 

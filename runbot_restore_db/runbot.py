@@ -159,9 +159,18 @@ class runbot_build(osv.osv):
     def job_25_restore(self, cr, uid, build, lock_path, log_path):
         if not build.repo_id.db_name:
             return 0
-        self.pg_createdb(cr, uid, "%s-all" % build.dest)
-        cmd = "pg_dump %s | psql %s-all" % (build.repo_id.db_name, build.dest)
-        return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
+        db_name = "%s-all" % build.dest
+        if not build.repo_id.db_name_template:
+            self.pg_createdb(cr, uid, db_name)
+            cmd = "pg_dump %s | psql %s-all" % (build.repo_id.db_name, build.dest)
+            return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
+        else:
+            cmd = "createdb {0} -T {1}".format(build.repo_id.db_name,
+                                                      db_name)
+            cmd.split()
+            if build.repo_id.db_codification:
+                cmd.append("-E {0}".format(build.repo_id.db_codification))
+            return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
 
     def job_26_upgrade(self, cr, uid, build, lock_path, log_path):
         if not build.repo_id.db_name:
@@ -376,6 +385,8 @@ class runbot_repo(osv.Model):
 
     _columns = {
         'db_name': fields.char("Database name to replicate"),
+        'db_name_template': fields.boolean('Db Name Template'),
+        'db_codification': fields.char('Codification'),
         'nobuild': fields.boolean('Do not build'),
         'sequence': fields.integer('Sequence of display', select=True),
         'error': fields.selection(loglevels, 'Error messages'),
@@ -393,6 +404,8 @@ class runbot_repo(osv.Model):
         'traceback': 'error',
         'warning': 'warning',
         'failed': 'none',
+        'db_name_template': True,
+        'db_codification': 'UTF-8'
     }
 
     _order = 'sequence'
