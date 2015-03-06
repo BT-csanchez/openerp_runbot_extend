@@ -165,11 +165,13 @@ class runbot_build(osv.osv):
             cmd = "pg_dump %s | psql %s-all" % (build.repo_id.db_name, build.dest)
             return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
         else:
-            cmd = "createdb {0} -T {1}".format(build.repo_id.db_name,
-                                                      db_name)
-            cmd = cmd.split()
+            cmd = ['createdb']
+            cmd.append(db_name)
             if build.repo_id.db_codification:
-                cmd.append("-E {0}".format(build.repo_id.db_codification))
+                cmd.append("-E")
+                cmd.append("{0}".format(build.repo_id.db_codification))
+            cmd.append('-T')
+            cmd.append(build.repo_id.db_name)
             return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
 
     def job_26_upgrade(self, cr, uid, build, lock_path, log_path):
