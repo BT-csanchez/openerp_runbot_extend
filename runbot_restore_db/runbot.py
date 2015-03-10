@@ -38,7 +38,20 @@ loglevels = (('none', 'None'),
              ('warning', 'Warning'),
              ('error', 'Error'))
 
+LOG_FILENAME = '/tmp/{0}'.format(__name__)
+
+# Set up a specific logger with our desired output level
 _logger = logging.getLogger(__name__)
+_logger.setLevel(logging.DEBUG)
+
+# Add the log message handler to the logger
+handler = logging.handlers.RotatingFileHandler(
+              LOG_FILENAME, maxBytes=20000, backupCount=10)
+
+_logger.addHandler(handler)
+
+
+
 
 _re_error = r'^(?:\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3} \d+ (?:ERROR|CRITICAL) )|(?:Traceback \(most recent call last\):)$'
 _re_warning = r'^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3} \d+ WARNING '
@@ -155,19 +168,40 @@ class runbot_build(osv.osv):
                         os.killpg(proc.pid, signal.SIGKILL)
                     except OSError:
                         pass
+    def createdb_from_other(self, cr, uid, dbname, template, codification):
+        self.pg_dropdb(cr, uid, dbname)
+        _logger.debug("createdb from other %s", dbname)
+        if not codification:
+            codification = 'UTF-8'
+        run(['createdb',
+             '--encoding={0}'.format(codification),
+             '--lc-collate=C',
+             '--template={0}'.format(template), dbname])
+        _logger.debug("End createdb from other")
+
 
     def job_25_restore(self, cr, uid, build, lock_path, log_path):
         if not build.repo_id.db_name:
             return 0
-        self.pg_createdb(cr, uid, "%s-all" % build.dest)
-        cmd = "pg_dump %s | psql %s-all" % (build.repo_id.db_name, build.dest)
-        return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
+        db_name = "%s-all" % build.dest
+        if not build.repo_id.db_name_template:
+            self.pg_createdb(cr, uid, db_name)
+            cmd = "pg_dump %s | psql %s-all" % (build.repo_id.db_name, build.dest)
+            return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
+        else:
+            self.createdb_from_other(cr, uid, db_name, build.repo_id.db_name, build.repo_id.db_codification)
+            return self.spawn([], lock_path, log_path, cpu_limit=None, shell=True)
 
     def job_26_upgrade(self, cr, uid, build, lock_path, log_path):
         if not build.repo_id.db_name:
             return 0
         cmd, mods = build.cmd()
-        cmd += ['-d', '%s-all' % build.dest, '-u', 'all', '--stop-after-init', '--log-level=debug', '--test-enable']
+        command = []
+        if build.repo_id.update_modules:
+            command = ['-u', build.repo_id.update_modules]
+        cmd += ['-d', '%s-all' % build.dest]
+        cmd += command
+        cmd += ['--stop-after-init', '--log-level=debug', '--test-enable']
         return self.spawn(cmd, lock_path, log_path, cpu_limit=None)
 
     def job_30_run(self, cr, uid, build, lock_path, log_path):
@@ -359,17 +393,26 @@ class runbot_repo(osv.Model):
         """
         build_obj = pool.get('runbot.build')
         jobs = build_obj.list_jobs()
-        job_obj = pool.get('runbot.job')
         for job_name in jobs:
-            job_id = job_obj.search(cr, 1, [('name', '=', job_name)])
+            query = "select id from runbot_job where name = '{0}'".format(job_name)
+            cr.execute(query)
+            job_id = [x[0] for x in cr.fetchall()]
             if not job_id:
-                job_obj.create(cr, 1, {'name': job_name})
-        job_to_rm_ids = job_obj.search(cr, 1, [('name', 'not in', jobs)])
-        job_obj.unlink(cr, 1, job_to_rm_ids)
+                query = """insert into runbot_job (name) values ('{0}')""".format(job_name)
+                cr.execute(query)
+        query = "select id,name from runbot_job "
+        cr.execute(query)
+        job_to_rm_ids = [x[0] for x in cr.fetchall() if x[1] not in jobs]
+        for job_id in job_to_rm_ids:
+                query = "delete from runbot_job where id = {0}".format(job_id)
+                cr.execute(query)
         return super(runbot_repo, self).__init__(pool, cr)
 
     _columns = {
         'db_name': fields.char("Database name to replicate"),
+        'db_name_template': fields.boolean('Db Name Template'),
+        'db_codification': fields.char('Codification'),
+        'update_modules': fields.char('Update these modules'),
         'nobuild': fields.boolean('Do not build'),
         'sequence': fields.integer('Sequence of display', select=True),
         'error': fields.selection(loglevels, 'Error messages'),
@@ -387,6 +430,9 @@ class runbot_repo(osv.Model):
         'traceback': 'error',
         'warning': 'warning',
         'failed': 'none',
+        'db_name_template': True,
+        'db_codification': 'UTF-8',
+        'update_modules': ''
     }
 
     _order = 'sequence'
