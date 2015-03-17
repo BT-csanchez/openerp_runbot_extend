@@ -74,7 +74,7 @@
                     <li t-if="bu['state']!='testing' and bu['state']!='pending'" class="divider"></li>
                     <li><a t-attf-href="/runbot/build/{{bu['id']}}">Logs <i class="fa fa-file-text-o"/></a></li>
                     <t t-foreach="bu['parse_job_ids']" t-as='log'>
-                    <li><a t-attf-href="http://{{bu['host']}}/runbot/static/build/#{bu['real_dest']}/logs/{{log}}.txt"><t t-esc="log"/> <i class="fa fa-file-text-o"/></a></li>
+                    <li><a t-attf-href="http://{{bu['host']}}:9069/runbot/static/build/#{bu['real_dest']}/logs/{{log}}.txt"><t t-esc="log"/> <i class="fa fa-file-text-o"/></a></li>
                     </t>
                     <li t-if="bu['state']!='pending'" class="divider"></li>
                     <li><a t-attf-href="{{br['branch'].branch_url}}">Branch or pull <i class="fa fa-github"/></a></li>
