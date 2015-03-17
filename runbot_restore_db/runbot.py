@@ -154,7 +154,7 @@ def uniq_list(l):
     return OrderedDict.fromkeys(l).keys()
 
 def fqdn():
-    return socket.gethostname()
+    return socket.getfqdn()
 
 class runbot_build(osv.osv):
     _inherit = "runbot.build"
