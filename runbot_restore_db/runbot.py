@@ -181,6 +181,7 @@ class runbot_build(osv.osv):
 
 
     def job_25_restore(self, cr, uid, build, lock_path, log_path):
+        build._log('job_25_restore', 'Duplicate template db %s' % build.dest)
         if not build.repo_id.db_name:
             return 0
         db_name = "%s-all" % build.dest
@@ -193,6 +194,7 @@ class runbot_build(osv.osv):
             return self.spawn([], lock_path, log_path, cpu_limit=None, shell=True)
 
     def job_26_upgrade(self, cr, uid, build, lock_path, log_path):
+        build._log('job_26_upgrade', 'Update template db %s' % build.dest)
         if not build.repo_id.db_name:
             return 0
         cmd, mods = build.cmd()
@@ -205,6 +207,7 @@ class runbot_build(osv.osv):
         return self.spawn(cmd, lock_path, log_path, cpu_limit=None)
 
     def job_27_restore(self, cr, uid, build, lock_path, log_path):
+        build._log('job_27_restore', 'Create testing db %s' % build.dest)
         if not build.repo_id.db_name:
             return 0
         db_name = "%s-testing" % build.dest
@@ -217,6 +220,7 @@ class runbot_build(osv.osv):
             return self.spawn([], lock_path, log_path, cpu_limit=None, shell=True)
 
     def job_28_install(self, cr, uid, build, lock_path, log_path):
+        build._log('job_28_install', 'Start installing modules testing db %s' % build.dest)
         if not build.repo_id.db_name:
             return 0
         cmd, mods = build.cmd()
