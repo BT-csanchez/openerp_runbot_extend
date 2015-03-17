@@ -204,6 +204,30 @@ class runbot_build(osv.osv):
         cmd += ['--stop-after-init', '--log-level=debug', '--test-enable']
         return self.spawn(cmd, lock_path, log_path, cpu_limit=None)
 
+    def job_27_restore(self, cr, uid, build, lock_path, log_path):
+        if not build.repo_id.db_name:
+            return 0
+        db_name = "%s-testing" % build.dest
+        if not build.repo_id.use_testing_template:
+            self.pg_createdb(cr, uid, db_name)
+            cmd = "pg_dump %s | psql %s" % (build.repo_id.db_name_template_testing, db_name)
+            return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
+        else:
+            self.createdb_from_other(cr, uid, db_name, build.repo_id.db_name_testing, build.repo_id.db_codification)
+            return self.spawn([], lock_path, log_path, cpu_limit=None, shell=True)
+
+    def job_28_install(self, cr, uid, build, lock_path, log_path):
+        if not build.repo_id.db_name:
+            return 0
+        cmd, mods = build.cmd()
+        command = []
+        if build.repo_id.test_update_modules:
+            command = ['-i', build.repo_id.test_update_modules]
+        cmd += ['-d', '%s-testing' % build.dest]
+        cmd += command
+        cmd += ['--stop-after-init', '--log-level=debug', '--test-enable']
+        return self.spawn(cmd, lock_path, log_path, cpu_limit=None)
+
     def job_30_run(self, cr, uid, build, lock_path, log_path):
         if build.repo_id.db_name and build.state == 'running' and build.result == "ko":
             return 0
@@ -410,9 +434,13 @@ class runbot_repo(osv.Model):
 
     _columns = {
         'db_name': fields.char("Database name to replicate"),
-        'db_name_template': fields.boolean('Db Name Template'),
+        'db_name_template': fields.boolean('Use DB Template?'),
         'db_codification': fields.char('Codification'),
         'update_modules': fields.char('Update these modules'),
+        'use_testing_template': fields.boolean('Use DB Template for testing?'),
+        'db_name_testing': fields.char('Db Name Template Testing'),
+        'test_update_modules': fields.char('Install and test these modules',
+                                           help="These modules should not be installed in Db Name Template Testing"),
         'nobuild': fields.boolean('Do not build'),
         'sequence': fields.integer('Sequence of display', select=True),
         'error': fields.selection(loglevels, 'Error messages'),
@@ -431,6 +459,7 @@ class runbot_repo(osv.Model):
         'warning': 'warning',
         'failed': 'none',
         'db_name_template': True,
+        'use_testing_template': True,
         'db_codification': 'UTF-8',
         'update_modules': ''
     }
