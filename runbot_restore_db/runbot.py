@@ -219,8 +219,8 @@ class runbot_build(osv.osv):
             self.createdb_from_other(cr, uid, db_name, build.repo_id.db_name_testing, build.repo_id.db_codification)
             return self.spawn([], lock_path, log_path, cpu_limit=None, shell=True)
 
-    def job_28_install(self, cr, uid, build, lock_path, log_path):
-        build._log('job_28_install', 'Start installing modules testing db %s' % build.dest)
+    def job_28_install_and_test(self, cr, uid, build, lock_path, log_path):
+        build._log('job_28_install_and_test', 'Start installing modules testing db %s' % build.dest)
         if not build.repo_id.db_name:
             return 0
         cmd, mods = build.cmd()
