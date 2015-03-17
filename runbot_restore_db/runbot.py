@@ -350,6 +350,7 @@ class runbot_build(osv.osv):
                 port = self.find_port(cr, uid)
                 values = {
                     'host': fqdn(),
+                    'host_port': config['xmlrpc_port'],
                     'port': port,
                     'state': 'testing',
                     'job': jobs[0],
