@@ -7,17 +7,16 @@
             <field name="arch" type="xml">
                 <field name="modules" position="after">
                    
-                    <separtor string="Runtime executiong" colspan="4">
+                    <separtor string="Runtime executiong" colspan="4" />
 	                    <field name="db_name" />
 	                    <field name="db_name_template" />
 	                    <field name="db_codification" />
 						<field name="update_modules" />
-					<separtor string="Testing" colspan="4">
+					<separtor string="Testing" colspan="4" />
 						<field name="db_name_testing" />
 						<field name="use_testing_template" />
 						<field name="test_update_modules" />
-					</separtor>
-					<separtor string="Other options" colspan="4">
+					<separtor string="Other options" colspan="4" />
                     <field name="nobuild" />
                     <field name="sequence" />
 
