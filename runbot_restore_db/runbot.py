@@ -65,7 +65,7 @@ def log(*l, **kw):
 def can_use_db_template(cr, db):
     cr.execute("""select datname FROM pg_stat_activity;""")
     datnames = [x[0] for x in cr.fetchall()]
-    return db in datnames
+    return db not in datnames
 
 def dashes(string):
     """Sanitize the input string"""
@@ -177,6 +177,7 @@ class runbot_build(osv.osv):
         self.pg_dropdb(cr, uid, dbname)
         _logger.debug("createdb from other %s", dbname)
         if can_use_db_template(cr, template):
+            _logger.debug("I can use the template {0}".format(template))
             if not codification:
                 codification = 'UTF-8'
             cmd = ['createdb',
@@ -186,6 +187,7 @@ class runbot_build(osv.osv):
         else:
             self.pg_createdb(cr, uid, dbname)
             cmd = "pg_dump {0} | psql {1}".format(template, dbname)
+            _logger.debug("I cannot use the template {0}".format(template))
         _logger.debug(cmd)
         _logger.debug("End createdb from other")
         return cmd
