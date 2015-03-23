@@ -221,8 +221,6 @@ class runbot_build(osv.osv):
 
     def job_27_restore(self, cr, uid, build, lock_path, log_path):
         build._log('job_27_restore', 'Create testing db %s' % build.dest)
-        if not build.repo_id.db_name:
-            return 0
         db_name = "%s-testing" % build.dest
         if not build.repo_id.use_testing_template:
             self.pg_createdb(cr, uid, db_name)
