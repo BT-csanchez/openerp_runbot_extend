@@ -216,7 +216,7 @@ class runbot_build(osv.osv):
             command = ['-u', build.repo_id.update_modules]
         cmd += ['-d', '%s-all' % build.dest]
         cmd += command
-        cmd += ['--stop-after-init', '--log-level=debug', '--test-enable']
+        cmd += ['--stop-after-init']
         return self.spawn(cmd, lock_path, log_path, cpu_limit=None)
 
     def job_27_restore(self, cr, uid, build, lock_path, log_path):
@@ -227,10 +227,11 @@ class runbot_build(osv.osv):
         if not build.repo_id.use_testing_template:
             self.pg_createdb(cr, uid, db_name)
             cmd = "pg_dump %s | psql %s" % (build.repo_id.db_name_template_testing, db_name)
-            return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
+            
         else:
             cmd = self.createdb_from_other(cr, uid, db_name, build.repo_id.db_name_testing, build.repo_id.db_codification)
-            return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
+        build._log(cmd)
+        return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
 
     def job_28_install_and_test(self, cr, uid, build, lock_path, log_path):
         build._log('job_28_install_and_test', 'Start installing modules testing db %s' % build.dest)
