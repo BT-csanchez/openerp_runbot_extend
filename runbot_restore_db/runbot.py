@@ -186,8 +186,9 @@ class runbot_build(osv.osv):
         else:
             self.pg_createdb(cr, uid, dbname)
             cmd = "pg_dump {0} | psql {1}".format(template, dbname)
-        return cmd
+        _logger.debug(cmd)
         _logger.debug("End createdb from other")
+        return cmd
 
 
     def job_25_restore(self, cr, uid, build, lock_path, log_path):
