@@ -62,6 +62,11 @@ def log(*l, **kw):
           ["%s=%r" % (k, v) for k, v in kw.items()]
     _logger.debug(' '.join(out))
 
+def can_use_db_template(cr, db):
+    cr.execute("""select datname FROM pg_stat_activity;""")
+    datnames = [x[0] for x in cr.fetchall()]
+    return db in datnames
+
 def dashes(string):
     """Sanitize the input string"""
     for i in '~":\'':
@@ -171,12 +176,17 @@ class runbot_build(osv.osv):
     def createdb_from_other(self, cr, uid, dbname, template, codification):
         self.pg_dropdb(cr, uid, dbname)
         _logger.debug("createdb from other %s", dbname)
-        if not codification:
-            codification = 'UTF-8'
-        run(['createdb',
-             '--encoding={0}'.format(codification),
-             '--lc-collate=C',
-             '--template={0}'.format(template), dbname])
+        if can_use_db_template(cr, template):
+            if not codification:
+                codification = 'UTF-8'
+            cmd = ['createdb',
+                 '--encoding={0}'.format(codification),
+                 '--template={0}'.format(template),
+                 dbname]
+        else:
+            self.pg_createdb(cr, uid, dbname)
+            cmd = "pg_dump {0} | psql {1}".format(template, dbname)
+        return cmd
         _logger.debug("End createdb from other")
 
 
@@ -190,8 +200,8 @@ class runbot_build(osv.osv):
             cmd = "pg_dump %s | psql %s-all" % (build.repo_id.db_name, build.dest)
             return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
         else:
-            self.createdb_from_other(cr, uid, db_name, build.repo_id.db_name, build.repo_id.db_codification)
-            return self.spawn([], lock_path, log_path, cpu_limit=None, shell=True)
+            cmd = self.createdb_from_other(cr, uid, db_name, build.repo_id.db_name, build.repo_id.db_codification)
+            return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
 
     def job_26_upgrade(self, cr, uid, build, lock_path, log_path):
         build._log('job_26_upgrade', 'Update template db %s' % build.dest)
@@ -216,8 +226,8 @@ class runbot_build(osv.osv):
             cmd = "pg_dump %s | psql %s" % (build.repo_id.db_name_template_testing, db_name)
             return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
         else:
-            self.createdb_from_other(cr, uid, db_name, build.repo_id.db_name_testing, build.repo_id.db_codification)
-            return self.spawn([], lock_path, log_path, cpu_limit=None, shell=True)
+            cmd = self.createdb_from_other(cr, uid, db_name, build.repo_id.db_name_testing, build.repo_id.db_codification)
+            return self.spawn(cmd, lock_path, log_path, cpu_limit=None, shell=True)
 
     def job_28_install_and_test(self, cr, uid, build, lock_path, log_path):
         build._log('job_28_install_and_test', 'Start installing modules testing db %s' % build.dest)
