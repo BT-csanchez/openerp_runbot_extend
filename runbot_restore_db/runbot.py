@@ -180,15 +180,16 @@ class runbot_build(osv.osv):
             _logger.debug("I can use the template {0}".format(template))
             if not codification:
                 codification = 'UTF-8'
-            cmd = ['createdb',
-                 '--encoding={0}'.format(codification),
-                 '--template={0}'.format(template),
-                 dbname]
+            cmd = ['createdb',dbname,
+                   '--encoding={0}'.format(codification),
+                   '--template={0}'.format(template)]
         else:
+            _logger.debug("PG Create db {0}".format(dbname))
             self.pg_createdb(cr, uid, dbname)
             cmd = "pg_dump {0} | psql {1}".format(template, dbname)
             _logger.debug("I cannot use the template {0}".format(template))
-        _logger.debug(cmd)
+        
+        _logger.debug(str(cmd))
         _logger.debug("End createdb from other")
         return cmd
 
