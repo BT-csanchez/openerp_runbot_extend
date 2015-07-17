@@ -227,7 +227,7 @@ class runbot_build(osv.osv):
         db_name = "%s-testing" % build.dest
         if not build.repo_id.use_testing_template:
             self.pg_createdb(cr, uid, db_name)
-            cmd = "pg_dump %s | psql %s" % (build.repo_id.db_name_template_testing, db_name)
+            cmd = "pg_dump %s | psql %s" % (build.repo_id.db_name_testing, db_name)
         else:
             cmd = self.createdb_from_other(cr, uid, db_name, build.repo_id.db_name_testing, build.repo_id.db_codification)
         
